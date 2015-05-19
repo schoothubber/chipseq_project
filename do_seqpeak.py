@@ -1,27 +1,82 @@
+#!/usr/bin/env
+
 from subprocess import Popen, PIPE
 import os
 import fnmatch
 
 
 
-def call_peaks(aln_folder, seqpeak_folder):
+def call_peaks(bam_test_file, aln_folder, seqpeak_folder):
+	"""
+	#file to be checked for presence
+	#basename_peak.cod	
 	"""
 	
+	#take the base name of the original bam file
+	#use it to name the corresponding output files
+	base_name_test = os.path.splitext(bam_test_file)[0]
+	
+	#check if the actual output file is already present in seqpeak_folder
+	check_file = "%s%s_peak.cod"%(seqpeak_folder, base_name_test)
+	if not os.path.isfile(check_file):
+	
+		peak_filename = "%s"%base_name_test
+		seqpeaklist = "%s/%s_filelist.txt"%(aln_folder, base_name_test)
+		
+		
+		cmd1 = [
+				"seqpeak", "-i", seqpeaklist, "-d", seqpeak_folder, 
+				"-o", peak_filename, "-e", "150", "-maxgap", "200", 
+				"-minlen", "200"
+				]
+		
+		print "Running seqpeak..."	
+		#pipe1 = check_output(cmd1)
+		pipe1 = Popen(cmd1, stdout=PIPE, stderr=PIPE)
+		stdout, stderr = pipe1.communicate()
+	
+	else:
+		print "The peaks are already called for this ALN file"
+		pass
+
+
+def delete_files(bam_test_file, seqpeak_folder):
+	"""	
+	#files to be deleted
+	#basename.cgw
+	#basename_log2fc.bar
+	#basename_t.bar
+	
+	These files are produced by cisgenomes seqpeak tool
+	However they are not used and are therefor declared obsolete
 	"""
-	"/home/wouter/chipseq_project/ALN_files/seqpeak_filelist.txt"
-	"/home/wouter/chipseq_project/cisgenome2.0/output_data/"
-
-
-
+	#get the basename
+	base_name_test = os.path.splitext(bam_test_file)[0]
 	
-	peak_filename = "test_peak"
-	seqpeaklist = "%s/seqpeak_filelist.txt"%aln_folder
+	#make filenames to-be-deleted
+	file_cgw = "%s%s.cgw"%(seqpeak_folder, base_name_test)
+	file_2fcbar = "%s%s_log2fc.bar"%(seqpeak_folder, base_name_test)
+	file_tbar = "%s%s_t.bar"%(seqpeak_folder, base_name_test)
 	
-	cmd1 = [
-			"seqpeak", "-i", seqpeaklist, "-d", seqpeak_folder, "-o", 
-			peak_filename, "-e", "150", "-maxgap", "200", "-minlen", "200"
-			]
-	print "Running seqpeak..."	
-	#pipe1 = check_output(cmd1)
-	pipe1 = Popen(cmd1, stdout=PIPE, stderr=PIPE)
-	stdout, stderr = pipe1.communicate()
+	obsolete_files = [file_cgw, file_2fcbar, file_tbar]
+	
+	#delete the obsolete files
+	print "Removing obsolete files..."
+	for obsolete_file in obsolete_files:
+		if os.path.isfile(obsolete_file):
+			os.remove(obsolete_file)
+			print "removed %s"%obsolete_file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
