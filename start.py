@@ -66,9 +66,9 @@ if args.cgpipeline:
 		delete_files(bam_test_file, seqpeak_folder)
 		neighbours(args.af, seqpeak_folder, neighbor_folder, bam_test_file)
 		peak_classifier(neighbor_folder, bam_test_file)
-		#peak_distributor(neighbor_folder, bam_test_file)
-		#peak_localizer(neighbor_folder, bam_test_file)
-		#peaks_per_chromosome(neighbor_folder, bam_test_file)
+		peak_distributor(neighbor_folder, bam_test_file)
+		peak_localizer(neighbor_folder, bam_test_file)
+		peaks_per_chromosome(neighbor_folder, bam_test_file)
 		
 		toc = time.clock()
 		print toc - tic

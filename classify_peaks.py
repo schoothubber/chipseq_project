@@ -57,9 +57,6 @@ def peak_classifier(neighbor_folder, bam_test_file):
 					
 			except ValueError:
 				pass
-	
-
-
 
 
 def peak_distributor(neighbor_folder, bam_test_file):
@@ -72,7 +69,7 @@ def peak_distributor(neighbor_folder, bam_test_file):
 	"""
 	
 	#read data
-	data, base_name = open_master_file(neighbor_folder, bam_test_file)
+	header, data, base_name = open_master_file(neighbor_folder, bam_test_file)
 	
 	TSS_data = [line[8] for line in data]
 	peak_data_perc = classify(TSS_data)
@@ -203,7 +200,6 @@ def classify(data):
 	return peak_data_perc
 
 
-
 def peak_localizer(neighbor_folder, bam_test_file):
 	"""
 	Divide the peaks into 2 groups: 1;intergenic, 2;intragenic
@@ -215,7 +211,7 @@ def peak_localizer(neighbor_folder, bam_test_file):
 	The results are saved in a pie chart using matplotlib
 	"""
 	
-	data, base_name = open_master_file(neighbor_folder, bam_test_file)
+	header, data, base_name = open_master_file(neighbor_folder, bam_test_file)
 	
 	intergenic = 0
 	intragenic = 0
@@ -260,9 +256,7 @@ def peak_localizer(neighbor_folder, bam_test_file):
 	plt.savefig(pie_name)
 	plt.close()	
 	
-	
-	
-	
+		
 def peaks_per_chromosome(neighbor_folder, bam_test_file):
 	"""
 	As the function titel kind of gives away...
@@ -270,7 +264,7 @@ def peaks_per_chromosome(neighbor_folder, bam_test_file):
 	And saves the results in a text file
 	"""
 	#read data
-	data, base_name = open_master_file(neighbor_folder, bam_test_file)
+	header, data, base_name = open_master_file(neighbor_folder, bam_test_file)
 	
 	chrom_list = []
 	for line in data:
@@ -295,6 +289,7 @@ def peaks_per_chromosome(neighbor_folder, bam_test_file):
 	#write the data to a text file
 	fn = "%s/%s%s"%(neighbor_folder, base_name, '_peaksperchrom.txt')
 	with open(fn, 'w') as fo:
+
 		for chrom, count in sorted_cc:
 			fo.write("%s\t%s\n"%(chrom,count))
 	
