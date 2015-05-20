@@ -1,6 +1,6 @@
 #!/usr/bin/env
 
-import os, fnmatch
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter
@@ -12,7 +12,10 @@ def open_master_file(neighbor_folder, bam_test_file):
 	"""
 	
 	base_name_test = os.path.splitext(bam_test_file)[0]
-	neighbour_file = "%sneighbour_%s_peak.cod"%(neighbor_folder, base_name_test)
+	neighbour_file = "%sneighbour_%s_peak.cod"%(
+											neighbor_folder, 
+											base_name_test
+												)
 
 	with open(neighbour_file, 'r') as fo:
 		
@@ -37,7 +40,10 @@ def peak_classifier(neighbor_folder, bam_test_file):
 	vics = [2000, 5000, 20000, 100000]
 	
 	#read data
-	header, data, base_name = open_master_file(neighbor_folder, bam_test_file)
+	header, data, base_name = open_master_file(
+											neighbor_folder, 
+											bam_test_file
+												)
 	
 	for vic in vics:
 		
@@ -69,7 +75,10 @@ def peak_distributor(neighbor_folder, bam_test_file):
 	"""
 	
 	#read data
-	header, data, base_name = open_master_file(neighbor_folder, bam_test_file)
+	header, data, base_name = open_master_file(
+											neighbor_folder, 
+											bam_test_file
+												)
 	
 	TSS_data = [line[8] for line in data]
 	peak_data_perc = classify(TSS_data)
@@ -103,10 +112,10 @@ def peak_distributor(neighbor_folder, bam_test_file):
 	ax.set_title('Peak Distribution')
 	ax.set_xticks(ind+width)
 	ax.set_xticklabels( (
-				'-200 to -100', '-100 to -50', '-50 to -20', '-20 to -10',
-				 '-10 to -5', '-5 to -2', '-2 to -1', '-1 to -0', '0 to 1',
-				 '1 to 2', '2 to 5', '5 to 10', '10 to 20', '20 to 50',
-				 '50 to 100', '100 to 200'
+				'-200 to -100', '-100 to -50', '-50 to -20', 
+				'-20 to -10', '-10 to -5', '-5 to -2', '-2 to -1', 
+				'-1 to -0', '0 to 1', '1 to 2', '2 to 5', '5 to 10', 
+				'10 to 20', '20 to 50','50 to 100', '100 to 200'
 						) )
 
 	ax.legend((rects1[0], rects2[0]), 
@@ -114,7 +123,11 @@ def peak_distributor(neighbor_folder, bam_test_file):
 				loc = 'upper center',
 				bbox_to_anchor = (0.5,1.35))
 
-	plot_name = "%s%s%s"%(neighbor_folder, base_name,'peak_distribution.png')
+	plot_name = "%s%s%s"%(
+						neighbor_folder, base_name,
+						'peak_distribution.png'
+						)
+						
 	print "saving %s"%plot_name
 	plt.savefig(plot_name)
 	plt.close()
@@ -211,7 +224,10 @@ def peak_localizer(neighbor_folder, bam_test_file):
 	The results are saved in a pie chart using matplotlib
 	"""
 	
-	header, data, base_name = open_master_file(neighbor_folder, bam_test_file)
+	header, data, base_name = open_master_file(
+											neighbor_folder, 
+											bam_test_file
+												)
 	
 	intergenic = 0
 	intragenic = 0
@@ -257,15 +273,23 @@ def peak_localizer(neighbor_folder, bam_test_file):
 	plt.close()	
 	
 		
-def peaks_per_chromosome(neighbor_folder, bam_test_file):
+def peaks_per_chromosome(seqpeak_folder, neighbor_folder, bam_test_file):
 	"""
 	As the function titel kind of gives away...
 	this function counts the peaks per chromosome
 	And saves the results in a text file
 	"""
 	#read data
-	header, data, base_name = open_master_file(neighbor_folder, bam_test_file)
-	
+	base_name_test = os.path.splitext(bam_test_file)[0]
+	seqpeak_file = "%s%s_peak.cod"%(seqpeak_folder, base_name_test)
+
+	with open(seqpeak_file, 'r') as fo:
+		
+		fo.next()
+		#remove all empty lines
+		data = [line.rstrip() for line in fo]
+		data = [line.split() for line in data if line]
+			
 	chrom_list = []
 	for line in data:
 		
@@ -287,12 +311,11 @@ def peaks_per_chromosome(neighbor_folder, bam_test_file):
 	sorted_cc = sorted(cc)
 	
 	#write the data to a text file
-	fn = "%s/%s%s"%(neighbor_folder, base_name, '_peaksperchrom.txt')
+	fn = "%s/%s%s"%(neighbor_folder, base_name_test, '_peaksperchrom.txt')
 	with open(fn, 'w') as fo:
 
 		for chrom, count in sorted_cc:
-			fo.write("%s\t%s\n"%(chrom,count))
-	
+			fo.write("%s\t%s\n"%(chrom,count))	
 	
 	
 	

@@ -2,7 +2,6 @@
 
 from subprocess import Popen, PIPE
 import os
-import fnmatch
 
 
 
@@ -23,17 +22,16 @@ def call_peaks(bam_test_file, aln_folder, seqpeak_folder):
 		peak_filename = "%s"%base_name_test
 		seqpeaklist = "%s/%s_filelist.txt"%(aln_folder, base_name_test)
 		
-		
-		cmd1 = [
+		cmd = [
 				"seqpeak", "-i", seqpeaklist, "-d", seqpeak_folder, 
 				"-o", peak_filename, "-e", "150", "-maxgap", "200", 
 				"-minlen", "200"
 				]
 		
 		print "Running seqpeak..."	
-		#pipe1 = check_output(cmd1)
-		pipe1 = Popen(cmd1, stdout=PIPE, stderr=PIPE)
-		stdout, stderr = pipe1.communicate()
+		#pipe = check_output(cmd)
+		pipe = Popen(cmd, stdout=PIPE, stderr=PIPE)
+		stdout, stderr = pipe.communicate()
 	
 	else:
 		print "The peaks are already called for this ALN file"
@@ -66,6 +64,8 @@ def delete_files(bam_test_file, seqpeak_folder):
 		if os.path.isfile(obsolete_file):
 			os.remove(obsolete_file)
 			print "removed %s"%obsolete_file
+		else:
+			pass
 
 
 
