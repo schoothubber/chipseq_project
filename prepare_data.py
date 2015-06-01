@@ -37,11 +37,16 @@ def remove_duplicates(bam_test_file, bam_folder):
 	dedup_bam_out = "%s%s%s"%(bam_folder, "dedupped_", bam_test_file)
 	
 	cmd = ["sambamba", "markdup", bam_in, dedup_bam_out]
+
+	if not os.path.isfile(dedup_bam_out):
+		
+		print "Removing duplicates from %s"%bam_in
+
+		pipe = Popen(cmd, stdout=PIPE, stderr=PIPE)
+		stdout, stderr = pipe.communicate()
 	
-	print " Removing duplicates from %s"%bam_in
-	
-	pipe = Popen(cmd, stdout=PIPE, stderr=PIPE)
-	stdout, stderr = pipe.communicate()	
+	else:
+		print "%s is already present, skipping conversion..."%dedup_bam_out
 
 
 def converter(bam_test_file, bam_control_file, bam_folder, aln_folder):
