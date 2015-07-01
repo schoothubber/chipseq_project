@@ -1,9 +1,14 @@
 #!/usr/bin/env
 
 import os
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter
+
+from prepare_data import get_base_name, make_random_peak_list
+from get_near_genes import neighbours
 
 
 def open_master_file(neighbor_folder, bam_test_file):
@@ -11,11 +16,11 @@ def open_master_file(neighbor_folder, bam_test_file):
 	Use this function to read and parse the Master file
 	"""
 	
-	base_name_test = os.path.splitext(bam_test_file)[0]
+	base_name_test = get_base_name(bam_test_file)
 	neighbour_file = "%sneighbour_%s_peak.cod"%(
-											neighbor_folder, 
-											base_name_test
-												)
+								neighbor_folder, 
+								base_name_test
+								)
 
 	with open(neighbour_file, 'r') as fo:
 		
@@ -31,19 +36,23 @@ def open_master_file(neighbor_folder, bam_test_file):
 	return header, data, base_name_test
 
 
-def peak_classifier(neighbor_folder, bam_test_file):
+def peak_classifier(fileargs):
 	"""
 	classify all peaks based on distance from TSS
 	but only for specific distances
 	"""
+	#folder parameters
+	bam_test_file = fileargs['bam_test_file']
+	neighbor_folder = fileargs['neighbor_folder']
+	
 	#classify genes based on TSS vicinity :2kb, 5kb, 20kb, 100kb
 	vics = [2000, 5000, 20000, 100000]
 	
 	#read data
 	header, data, base_name = open_master_file(
-											neighbor_folder, 
-											bam_test_file
-												)
+								neighbor_folder, 
+								bam_test_file
+								)
 	
 	for vic in vics:
 		
@@ -65,7 +74,7 @@ def peak_classifier(neighbor_folder, bam_test_file):
 				pass
 
 
-def peak_distributor(neighbor_folder, bam_test_file):
+def peak_distributor(fileargs, annoargs):
 	"""
 	classify all peaks based on distance from TSS
 	do the same with random regions
@@ -73,35 +82,84 @@ def peak_distributor(neighbor_folder, bam_test_file):
 	display data in a bar graph
 	
 	"""
+	#folder parameters
+	bam_test_file = fileargs['bam_test_file']
+	bam_ctrl_file = fileargs['bam_ctrl_file']
+	aln_folder = fileargs['aln_folder']
+	neighbor_folder = fileargs['neighbor_folder']
+	random_folder = fileargs['random_folder']
+	annotation_file = fileargs['nanno']
+	random_folder = fileargs['random_folder']
+	
 	
 	#read data
 	header, data, base_name = open_master_file(
-											neighbor_folder, 
-											bam_test_file
-												)
+								neighbor_folder, 
+								bam_test_file
+								)
 	
-	TSS_data = [line[8] for line in data]
-	peak_data_perc = classify(TSS_data)
-
-	#Start matplotlib stuff
-	
+	TSS_data_min = get_TSS_data(data)
+	peak_data_perc = classify(TSS_data_min)
 	N = len(peak_data_perc)
-
+	#print "N: %s"%N
+	
+	
+	#RESERVED FOR RANDOM VALUES
+	
+	base_name_ctrl = get_base_name(bam_ctrl_file)
+	make_random_peak_list(random_folder, aln_folder, base_name_ctrl, N)
+	random_path = "%s%s"%(random_folder, "random_data.cod")
+	
+	#annotate regions
+	rand_fileargs = {
+			'bam_test_file' : random_path,
+			'annotation_file' : annotation_file,
+			#'random_path' : random_path,
+			'seqpeak_folder' : random_folder,
+			'neighbor_folder' : random_folder
+			}
+	neighbours(rand_fileargs, annoargs)
+	
+	#read random data
+	random_peak_out = "%s%s"%(random_folder, "random_data.cod")
+	header, random_data, base_name = open_master_file(
+							random_folder, 
+							random_peak_out
+							)
+	
+	random_TSS_data_min = get_TSS_data(random_data)
+	random_peak_data_perc = classify(random_TSS_data_min)
+	
+	########################
+	#matplotlib stuff
+	########################
+	
 	ind = np.arange(N)  # the x locations for the groups
 	width = 0.35       # the width of the bars
 
 	fig, ax = plt.subplots()
-	rects1 = ax.bar(ind, peak_data_perc, width, color='r')
+	#the graph will have double bars: 
+	#red for the actual peaks
+	#and yellow for the random peaks
 	
-	#RESERVED FOR RANDOM VALUES
-	random_regions = np.random.random_integers(-200000, 200000, len(data))
-	random_data = classify(random_regions)
-	rects2 = ax.bar(ind+width, random_data, width, color='y')
-
+	#print "######################"
+	#print len(peak_data_perc)
+	#print len(ind)
+	#print peak_data_perc
+	#print len(random_peak_data_perc)
+	#print random_peak_data_perc
+	
+	bars_actual = ax.bar(ind, peak_data_perc, width, color='r')
+	bars_random = ax.bar(ind+width, random_peak_data_perc, width, color='y')
+	#print "################################"
+	#print len(bars_actual)
+	#print bars_actual
+	#print len(bars_random)
+	#print bars_random
+	
 	# add some text for labels, title and axes ticks
 	plt.xticks(rotation=90)
 	plt.tight_layout()
-	
 	
 	fig = plt.gcf()
 	fig.subplots_adjust(bottom = 0.25, left = 0.1, top = 0.8)
@@ -118,7 +176,7 @@ def peak_distributor(neighbor_folder, bam_test_file):
 				'10 to 20', '20 to 50','50 to 100', '100 to 200'
 						) )
 
-	ax.legend((rects1[0], rects2[0]), 
+	ax.legend((bars_actual[0], bars_random[0]), 
 				('Peaks', 'Random'),
 				loc = 'upper center',
 				bbox_to_anchor = (0.5,1.35))
@@ -131,6 +189,50 @@ def peak_distributor(neighbor_folder, bam_test_file):
 	print "saving %s"%plot_name
 	plt.savefig(plot_name)
 	plt.close()
+
+
+def get_TSS_data(data):
+	"""
+	Receive data of peaks and their distances to TSS
+	And return the nearest TSS for each peak
+	"""
+	TSS_data_max = []
+	for line in data:
+		try:
+			id_tss = [line[0],int(line[8])]
+			TSS_data_max.append(id_tss)
+		except ValueError:
+			pass
+			
+	TSS_data_min = []
+	temp_tss_list = []
+	TSS_list = []
+	
+	for seq_id, TSS in TSS_data_max:
+		temp_tss = TSS
+		if not temp_tss_list:
+			identifier = seq_id
+			TSS_list.append(TSS)
+			temp_tss_list.append(abs(temp_tss))
+		elif identifier == seq_id:
+			TSS_list.append(TSS)
+			temp_tss_list.append(abs(temp_tss))
+		elif identifier != seq_id:
+			#print len(TSS_list)
+			#print len(temp_tss_list)
+			min_tss = min(temp_tss_list)
+			tss_index = temp_tss_list.index(min_tss)
+			TSS_data_min.append(TSS_list[tss_index])
+			#reset the lists
+			temp_tss_list = []
+			TSS_list = []
+			#
+			identifier = seq_id
+			TSS_list.append(TSS)
+			temp_tss_list.append(abs(temp_tss))
+	
+	return TSS_data_min
+
 		
 		
 def classify(data):
@@ -213,7 +315,7 @@ def classify(data):
 	return peak_data_perc
 
 
-def peak_localizer(neighbor_folder, bam_test_file):
+def peak_localizer(fileargs):
 	"""
 	Divide the peaks into 2 groups: 1;intergenic, 2;intragenic
 	
@@ -223,11 +325,14 @@ def peak_localizer(neighbor_folder, bam_test_file):
 	
 	The results are saved in a pie chart using matplotlib
 	"""
+	#folder parameters
+	bam_test_file = fileargs['bam_test_file']
+	neighbor_folder = fileargs['neighbor_folder']
 	
 	header, data, base_name = open_master_file(
-											neighbor_folder, 
-											bam_test_file
-												)
+							neighbor_folder, 
+							bam_test_file
+							)
 	
 	intergenic = 0
 	intragenic = 0
@@ -273,15 +378,34 @@ def peak_localizer(neighbor_folder, bam_test_file):
 	plt.close()	
 	
 		
-def peaks_per_chromosome(seqpeak_folder, neighbor_folder, bam_test_file):
+
+	
+def peaks_per_chromosome(fileargs):
 	"""
 	As the function titel kind of gives away...
 	this function counts the peaks per chromosome
-	And saves the results in a text file
+	And saves the results in a text file and a graph
+	
+	The peaks need to be counted/arranged per 1Mb window
+	Creating a so called density plot
 	"""
+	#folder parameters
+	bam_test_file = fileargs['bam_test_file']
+	neighbor_folder = fileargs['neighbor_folder']
+	seqpeak_folder = fileargs['seqpeak_folder']
+	
+	#the window size is used to calculate the peak density
+	#the number of peaks is counted for each window
+	#default = 1Mb
+	window = 1000000
+	
 	#read data
-	base_name_test = os.path.splitext(bam_test_file)[0]
+	base_name_test = get_base_name(bam_test_file)
 	seqpeak_file = "%s%s_peak.cod"%(seqpeak_folder, base_name_test)
+	
+	#seqpeak_file = "%s%s"%(seqpeak_folder, "LPSIL102H4_dedupunique_peak.cod")
+	
+	#print seqpeak_file
 
 	with open(seqpeak_file, 'r') as fo:
 		
@@ -289,38 +413,131 @@ def peaks_per_chromosome(seqpeak_folder, neighbor_folder, bam_test_file):
 		#remove all empty lines
 		data = [line.rstrip() for line in fo]
 		data = [line.split() for line in data if line]
-			
-	chrom_list = []
+	
+	#place all peaks in a dictionary
+	#with key = chromosome number
+	#and value = peak start site	
+	chrompeak_dict = {}
 	for line in data:
 		
 		try:
-			chrom = line[1]
-			chrom_list.append(chrom)
+			#remove the 'chr' and keep the integer
+			#so that sorting can be done
+			chrom = int(line[1][3:])
+			peak_start = int(line[2])
+			
+			if not chrompeak_dict.has_key(chrom):
+				chrompeak_dict[chrom] = [int(peak_start)]
+			else:
+				chrompeak_dict[chrom].append(int(peak_start))
 			
 		except ValueError:
-			pass
+			
+			#in case there is no integer, but a X or Y
+			chrom = line[1][3:]
+			peak_start = int(line[2])
+			
+			if not chrompeak_dict.has_key(chrom):
+				chrompeak_dict[chrom] = [int(peak_start)]
+			else:
+				chrompeak_dict[chrom].append(int(peak_start))
 	
-	#count all occurences of a chromosome number in a list
-	chrom_counts = Counter(chrom_list)
-	
-	#extract the produced data from the dictionary and store in a list
-	#so that the output can but saved in a sorted order
-	cc = []
-	for k,v in chrom_counts.iteritems():
-		cc.append([k,v])
-	sorted_cc = sorted(cc)
+	#make a list of the keys (chromosomes) so that they can be 
+	#called in order from the dictionary
+	#
+	#I know there is a sortedDictionary method but im to lazy to import
+	key_chroms = sorted(chrompeak_dict.keys())
+
+	#go through all peaks per chromosome
+	counts_dict = {}
+	for chrom in key_chroms:
+		#chrom = 'chr' + str(chrom)
+		#for each chromosome there will be a list of peak start sites
+		peak_starts = sorted(chrompeak_dict[chrom])
+		
+		#A little list comprehension to lighten the mood
+		windows = [peak_start/window for peak_start in peak_starts]
+		
+		#use Counter() to quickly count the occurences of  each item in
+		# the list
+		counts = Counter(windows)
+		counts_dict[chrom] = counts
+		#print counts_dict
+
 	
 	#write the data to a text file
-	fn = "%s/%s%s"%(neighbor_folder, base_name_test, '_peaksperchrom.txt')
+	fn = "%s/%s%s"%(neighbor_folder, base_name_test, '_peakdensity.txt')
 	with open(fn, 'w') as fo:
 
-		for chrom, count in sorted_cc:
-			fo.write("%s\t%s\n"%(chrom,count))	
+		for chrom, counts in counts_dict.iteritems():
+			chrom = 'chr' + str(chrom)
+			fo.write("%s\n"%chrom)
+				
+			for window, tally in counts.iteritems():
+				fo.write("%s\t%s\n"%(window, tally))
+			fo.write("\n")
 	
+	#################################
+	#######Matplotlib stuff##########
+	#################################
+	#write the data into a graph plot
+	plot_name = "%s/%s%s"%(neighbor_folder, base_name_test, '_peakdensity.png')
+	#plot_name = "%s/%s%s"%(neighbor_folder, "LPSIL102H4_dedup", '_peakdensity.png')
 	
+	x = [] # x coordinates
+	y = [] # y coordinates
+	v = [] # x coordinates for vertical lines
+	xlabels = []
 	
-	
-	
+	i = 0
+	for chrom, counts in counts_dict.iteritems():
+		
+		#create the locations for the labels
+		v.append(i)
+		
+		for window, tally in counts.iteritems():
+			#create the x and y coordinates
+			x.append(i)
+			y.append(tally)
+			i += 1
+		
+		#create the labels
+		xlabels.append('chr' + str(chrom))
 
+	v.append(max(x))
+	
+	#make coordinates for the xlabels
+	#which should be in between the 2 consecutive X values
+	xlabel_locs = []
+	for j in range(0, len(v)-1):
+		#print j
+		loc = (float(v[j]) + float(v[j+1]))/2.0
+		xlabel_locs.append(loc)	
 
+	#print v
+	#print len(v)
+	#print xlabel_locs
+	#print len(xlabel_locs)
+	#print xlabels
+	#print len(xlabels)
+	#print len(x)
+	#print len(y)
+	#print xlabels
+	
+	plt.figure(figsize=(20,5))
+	plt.xlim(0, len(x))
+	plt.ylim(0, max(y)+5)
+	
+	plt.title('peak density')
+	plt.xlabel('chromosomes')
+	plt.ylabel('peak counts per Mb')
+	
+	plt.xticks(xlabel_locs, xlabels, rotation = 'vertical')
+	plt.subplots_adjust(bottom = 0.25)
+	plt.vlines(v, 0, max(y)+5, colors = 'y')
+	plt.scatter(x,y, s=5)
+	plt.savefig(plot_name)
+	plt.close()		
+	
+	
 	

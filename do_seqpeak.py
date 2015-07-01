@@ -1,19 +1,44 @@
 #!/usr/bin/env
 
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_output
 import os
 
+from prepare_data import get_base_name
 
 
-def call_peaks(bam_test_file, aln_folder, seqpeak_folder):
+def call_peaks(fileargs, peakargs):
 	"""
 	#file to be checked for presence
 	#basename_peak.cod	
+	
+	The peak calling is started by the following command:
+	
+	"seqpeak", "-i", seqpeaklist, "-d", seqpeak_folder, 
+	"-o", peak_filename, "-e", read_ext_len, "-b", bin_size, 
+	"-w", half_win_size, "ts", stand_win_stat, 
+	"-maxgap", max_peak_gap, "-minlen", min_reg_len, 
+	"-br", refine_boundary
+	
+	Some values are actually a yes or a no but the input is a 1 or a 0,
+	respectively
 	"""
+	#folder parameters
+	bam_test_file = fileargs['bam_test_file']
+	aln_folder = fileargs['aln_folder']
+	seqpeak_folder = fileargs['seqpeak_folder']
+	
+	#tool parameters
+	read_ext_len = peakargs['srext']
+	bin_size = peakargs['sbsize']
+	half_win_size = peakargs['shwsize']
+	stand_win_stat = peakargs['sstan']
+	max_peak_gap = peakargs['smpgap']
+	min_reg_len = peakargs['smrlen']
+	refine_boundary = peakargs['sbound']
 	
 	#take the base name of the original bam file
 	#use it to name the corresponding output files
-	base_name_test = os.path.splitext(bam_test_file)[0]
+	base_name_test = get_base_name(bam_test_file)
 	
 	#check if the actual output file is already present in seqpeak_folder
 	check_file = "%s%s_peak.cod"%(seqpeak_folder, base_name_test)
@@ -23,13 +48,23 @@ def call_peaks(bam_test_file, aln_folder, seqpeak_folder):
 		seqpeaklist = "%s/%s_filelist.txt"%(aln_folder, base_name_test)
 		
 		cmd = [
-				"seqpeak", "-i", seqpeaklist, "-d", seqpeak_folder, 
-				"-o", peak_filename, "-e", "150", "-maxgap", "200", 
-				"-minlen", "200"
-				]
+			"seqpeak", "-i", seqpeaklist, "-d", seqpeak_folder, 
+			"-o", peak_filename, "-e", read_ext_len, "-b", bin_size, 
+			"-w", half_win_size, "-ts", stand_win_stat, 
+			"-maxgap", max_peak_gap, "-minlen", min_reg_len, 
+			"-br", refine_boundary
+			]
+		
+#		cmd = "seqpeak -i %s -d %s -o %s -e %s -b %s -w %s -ts %s -maxgap %s -minlen %s -br %s"%
+#				(
+#				seqpeaklist,seqpeak_folder,peak_filename, 
+#				read_ext_len, bin_size, half_win_size, 
+#				stand_win_stat, max_peak_gap, min_reg_len, 
+#				refine_boundary
+#				)
 		
 		print "Running seqpeak..."	
-		#pipe = check_output(cmd)
+#		pipe = check_output(cmd, shell=True)
 		pipe = Popen(cmd, stdout=PIPE, stderr=PIPE)
 		stdout, stderr = pipe.communicate()
 	
@@ -38,7 +73,7 @@ def call_peaks(bam_test_file, aln_folder, seqpeak_folder):
 		pass
 
 
-def delete_files(bam_test_file, seqpeak_folder):
+def delete_files(fileargs):
 	"""	
 	#files to be deleted
 	#basename.cgw
@@ -48,8 +83,12 @@ def delete_files(bam_test_file, seqpeak_folder):
 	These files are produced by cisgenomes seqpeak tool
 	However they are not used and are therefor declared obsolete
 	"""
+	#folder parameters
+	bam_test_file = fileargs['bam_test_file']
+	seqpeak_folder = fileargs['seqpeak_folder']
+	
 	#get the basename
-	base_name_test = os.path.splitext(bam_test_file)[0]
+	base_name_test = get_base_name(bam_test_file)
 	
 	#make filenames to-be-deleted
 	file_cgw = "%s%s.cgw"%(seqpeak_folder, base_name_test)
