@@ -1,4 +1,7 @@
-#!/usr/bin/env
+
+######################################
+###Author: W. van der Schoot
+######################################
 
 from subprocess import Popen, PIPE
 import os
