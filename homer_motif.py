@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.7
 
 ######################################
 ###Author: W. van der Schoot
@@ -11,7 +12,7 @@ from prepare_data import get_base_name
 
 
 
-def HOMER_make_motifs(fileargs, motifargs):
+def make_motifs(fileargs, motifargs):
 	"""
 	findMotifsGenome.pl 	/home/wouter/chipseq_project/homer/findpeak_output/peaks2.txt 
 							hg19 
@@ -25,13 +26,13 @@ def HOMER_make_motifs(fileargs, motifargs):
 	bam_test_file = fileargs['bam_test_file']
 	seqpeak_folder = fileargs['seqpeak_folder']
 	motif_folder = fileargs['motif_folder']
-	
+
 	#tool parameters
-	genome = motifargs["mgenom"]
-	motif_size = motifargs["msize"]
-	motif_len = motifargs["mlen"]
-	motif_num = motifargs["mnum"]
-	mismatches = motifargs["mism"]
+	genome = motifargs["motif_genome"]
+	motif_size = motifargs["motif_size"]
+	motif_len = motifargs["motif_length"]
+	motif_num = motifargs["motif_number"]
+	mismatches = motifargs["motif_mismatch"]
 	
 	#Prepare the BED file names for input
 	#take everything except the .bam extension

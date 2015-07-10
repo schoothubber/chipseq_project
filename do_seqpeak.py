@@ -1,9 +1,10 @@
+#!/usr/bin/env python2.7
 
 ######################################
 ###Author: W. van der Schoot
 ######################################
 
-from subprocess import Popen, PIPE, check_output
+from subprocess import Popen, PIPE
 import os
 
 from prepare_data import get_base_name
@@ -29,15 +30,15 @@ def call_peaks(fileargs, peakargs):
 	bam_test_file = fileargs['bam_test_file']
 	aln_folder = fileargs['aln_folder']
 	seqpeak_folder = fileargs['seqpeak_folder']
-	
+
 	#tool parameters
-	read_ext_len = peakargs['srext']
-	bin_size = peakargs['sbsize']
-	half_win_size = peakargs['shwsize']
-	stand_win_stat = peakargs['sstan']
-	max_peak_gap = peakargs['smpgap']
-	min_reg_len = peakargs['smrlen']
-	refine_boundary = peakargs['sbound']
+	read_ext_len = peakargs['seqpeak_readextension']
+	bin_size = peakargs['seqpeak_binsize']
+	half_win_size = peakargs['seqpeak_halfwinsize']
+	stand_win_stat = peakargs['seqpeak_standardize']
+	max_peak_gap = peakargs['seqpeak_maxpeakgap']
+	min_reg_len = peakargs['seqpeak_minreglen']
+	refine_boundary = peakargs['seqpeak_boundary']
 	
 	#take the base name of the original bam file
 	#use it to name the corresponding output files

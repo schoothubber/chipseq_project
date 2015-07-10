@@ -1,10 +1,11 @@
+#!/usr/bin/env python2.7
 
 ######################################
 ###Author: W. van der Schoot
 ######################################
 
 from subprocess import Popen, PIPE
-import os
+import os, sys
 import random as rd
 
 
@@ -19,6 +20,7 @@ def converter(fileargs):
 	bam_test_file = fileargs['bam_test_file']
 	bam_ctrl_file = fileargs['bam_ctrl_file']
 	aln_folder = fileargs['aln_folder']
+	sambamba_path = fileargs['sambamba_path']
 	
 	tofile = [bam_test_file, bam_ctrl_file]
 	aln_files = []
@@ -30,11 +32,11 @@ def converter(fileargs):
 	    
 	    if not os.path.isfile(aln_out):
 		print "start BAM to ALN conversion for %s"%aln_out
-		make_aln_from_bam(fbam, aln_out)
+		make_aln_from_bam(fbam, aln_out, sambamba_path)
 	    else:
 		stat_size = os.stat(aln_out)[6]
 		if stat_size == 0:
-		    make_aln_from_bam(fbam, aln_out)
+		    make_aln_from_bam(fbam, aln_out, sambamba_path)
 		else:
 		    print "%s is already present, skipping conversion..."%aln_out
 		    pass
@@ -56,12 +58,16 @@ def get_base_name(fullpath):
 		
 		
 			
-def make_aln_from_bam(bam_in, aln_out):
+def make_aln_from_bam(bam_in, aln_out, sambamba_path):
 	"""
 	The name says it all
 	"""
-
-	cmd = ["sambamba", "view", "-t", "4", "-F", "not duplicate", bam_in]
+	
+	sambamba = "%s/sambamba"%sambamba_path
+	
+	print "sambamba: %s"%sambamba
+	
+	cmd = [sambamba, "view", "-t", "4", "-F", "not duplicate", bam_in]
 	fo = open(aln_out, 'w')
 	proc = Popen(cmd, stdout=PIPE)
 	perform = True
@@ -117,7 +123,10 @@ def make_seqpeaklist(tofile, aln_files, aln_folder):
 
 
 
-def make_random_peak_list(random_folder, aln_folder, base_name_ctrl, N):
+def make_random_peak_list(
+					peakargs, random_folder, aln_folder, 
+					base_name_ctrl, N
+					):
 	"""
 	N = number of peaks in the test file
 	the amount of random peaks should be 10N < 100000
@@ -127,7 +136,10 @@ def make_random_peak_list(random_folder, aln_folder, base_name_ctrl, N):
 	peaks list is reproducible.
 	"""
 	
-	
+	#peak parameters
+	seq_bin = peakargs['seqpeak_binsize']
+	seq_win = peakargs['seqpeak_halfwinsize']
+	peakshift = (float(seq_win) + 0.5) * float(seq_bin)
 	
 	aln_path = "%s%s%s"%(aln_folder, base_name_ctrl, '.aln')
 	with open(aln_path, 'r') as aln_fo:
@@ -163,9 +175,20 @@ def make_random_peak_list(random_folder, aln_folder, base_name_ctrl, N):
 	random_path = "%s%s"%(random_folder, "random_data_peak.cod")
 	rank = 1
 	with open(random_path, 'w') as rnd_fo:
-		rnd_fo.write("%s\t%s\t%s\t%s\t%s\n"%("rank", "chromosome", "start", "end", "strand"))
+		rnd_fo.write("%s\t%s\t%s\t%s\t%s\n"%(
+										"rank", "chromosome", "start", 
+										"end", "strand"
+										)
+										)
+		# c = chromosome
+		# p = peak middle point
+		# s = strand
 		for c, p, s in random_peaks:
-			rnd_fo.write("%s\t%s\t%s\t%s\t%s\n"%(rank, c, int(p)-500, int(p)+500, s))
+			rnd_fo.write("%s\t%s\t%s\t%s\t%s\n"%(
+									rank, c, int(p)-peakshift, 
+									int(p)+peakshift, s
+									)
+									)
 			rank += 1
 
 

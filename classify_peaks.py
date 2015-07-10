@@ -1,10 +1,15 @@
-#!/usr/bin/env
+#!/usr/bin/env python2.7
+
+######################################
+###Author: W. van der Schoot
+######################################
 
 import os
 import matplotlib
+#use a non-interactive backend
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import numpy as np
+from numpy import arange as ar
 from collections import Counter
 
 from prepare_data import get_base_name, make_random_peak_list
@@ -74,7 +79,7 @@ def peak_classifier(fileargs):
 				pass
 
 
-def peak_distributor(fileargs, annoargs):
+def peak_distributor(fileargs, peakargs, annoargs):
 	"""
 	classify all peaks based on distance from TSS
 	do the same with random regions
@@ -91,7 +96,6 @@ def peak_distributor(fileargs, annoargs):
 	annotation_file = fileargs['nanno']
 	random_folder = fileargs['random_folder']
 	
-	
 	#read data
 	header, data, base_name = open_master_file(
 								neighbor_folder, 
@@ -103,18 +107,23 @@ def peak_distributor(fileargs, annoargs):
 	N = len(peak_data_perc)
 	#print "N: %s"%N
 	
-	
-	#RESERVED FOR RANDOM VALUES
+	############################
+	#RESERVED FOR RANDOM VALUES#
+	############################
+	#The random peaks are taken from the input file
+	#At least 10x as many random peaks than there are actual peaks
+	#But never more than 100k peaks
 	
 	base_name_ctrl = get_base_name(bam_ctrl_file)
-	make_random_peak_list(random_folder, aln_folder, base_name_ctrl, N)
+	make_random_peak_list(peakargs, random_folder, aln_folder, base_name_ctrl, N)
 	random_path = "%s%s"%(random_folder, "random_data.cod")
 	
 	#annotate regions
+	#The random peaks need to be annotated in exactly the same way
+	#as the actual peaks
 	rand_fileargs = {
 			'bam_test_file' : random_path,
 			'annotation_file' : annotation_file,
-			#'random_path' : random_path,
 			'seqpeak_folder' : random_folder,
 			'neighbor_folder' : random_folder
 			}
@@ -134,7 +143,7 @@ def peak_distributor(fileargs, annoargs):
 	#matplotlib stuff
 	########################
 	
-	ind = np.arange(N)  # the x locations for the groups
+	ind = ar(N)  # the x locations for the groups
 	width = 0.35       # the width of the bars
 
 	fig, ax = plt.subplots()
@@ -458,8 +467,6 @@ def peaks_per_chromosome(fileargs):
 		#A little list comprehension to lighten the mood
 		windows = [peak_start/window for peak_start in peak_starts]
 		
-		#use Counter() to quickly count the occurences of  each item in
-		# the list
 		counts = Counter(windows)
 		counts_dict[chrom] = counts
 		#print counts_dict

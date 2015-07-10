@@ -1,18 +1,18 @@
+#!/usr/bin/env python2.7
 
 ######################################
-###Author: W. van der Schoot
+#######Author: W. van der Schoot######
 ######################################
 
-import argparse, os
+import argparse, os, sys
 
+from logging import parameter_logger
 from prepare_data import converter
 from do_seqpeak import call_peaks, delete_files
 from get_near_genes import neighbours
-from classify_peaks import (
-				peak_classifier, peak_distributor,
-				peak_localizer, peaks_per_chromosome
-						)
-from homer_motif import HOMER_make_motifs
+from classify_peaks import (peak_classifier, peak_distributor,
+				peak_localizer, peaks_per_chromosome)
+from homer_motif import make_motifs
 
 parser = argparse.ArgumentParser()
 
@@ -20,6 +20,8 @@ parser.add_argument(
 		"-p", "--cgpipeline", help="Start the cisgenome pipeline",
 		action="store_true")
 
+#tool path names
+parser.add_argument("sam", help="Full pathname to sambamba")
 #files and output folder
 parser.add_argument("bt", help="Full pathname BAM test file")
 parser.add_argument("bc", help="Full pathname BAM control file")
@@ -79,6 +81,10 @@ if args.cgpipeline:
 	random_folder = "%s/random/"%main_output
 	if not os.path.exists(random_folder):
 		os.mkdir(random_folder)
+
+	log_folder = "%s/logs/"%main_output
+	if not os.path.exists(log_folder):
+		os.mkdir(log_folder)
 	
 	#some hash:
 	
@@ -92,47 +98,50 @@ if args.cgpipeline:
 		'neighbor_folder' : neighbor_folder,
 		'motif_folder' : motif_folder,
 		'random_folder' : random_folder,
-		'nanno' : args.nanno
+		'nanno' : args.nanno,
+		'log_folder' : log_folder,
+		'sambamba_path' : args.sam
 		}
 	
 	#seqpeak parameters
 	peakargs = {
-		"srext" : args.srext,
-		"sbsize" : args.sbsize,
-		"shwsize" : args.shwsize,
-		"sstan" : args.sstan,
-		"smpgap" : args.smpgap,
-		"smrlen" : args.smrlen,
-		"sbound" : args.sbound
+		"seqpeak_readextension" : args.srext,
+		"seqpeak_binsize" : args.sbsize,
+		"seqpeak_halfwinsize" : args.shwsize,
+		"seqpeak_standardize" : args.sstan,
+		"seqpeak_maxpeakgap" : args.smpgap,
+		"seqpeak_minreglen" : args.smrlen,
+		"seqpeak_boundary" : args.sbound
 		}
 	
 	#neighbor parameters
 	annoargs = {
-		"nspec" : args.nspec,
-		"nanno" : args.nanno,
-		"ngdist" : args.ngdist,
-		"nusgenes" : args.nusgenes,
-		"ndsgenes" : args.ndsgenes
+		"neighbor_species" : args.nspec,
+		"neighbor_annotationfile" : args.nanno,
+		"neighbor_gdistance" : args.ngdist,
+		"neighbor_upstreamgenes" : args.nusgenes,
+		"neighbor_downstreamgenes" : args.ndsgenes
 		}
 	
-	#motif paramters
+	#motif parameters
 	motifargs = {
-		"mgenom" : args.mgenom,
-		"msize" : args.msize,
-		"mlen" : args.mlen,
-		"mnum" : args.mnum,
-		"mism" : args.mism
+		"motif_genome" : args.mgenom,
+		"motif_size" : args.msize,
+		"motif_length" : args.mlen,
+		"motif_number" : args.mnum,
+		"motif_mismatch" : args.mism
 		}
 	
+	parameter_logger(fileargs, peakargs, annoargs, motifargs)
 	converter(fileargs)
 	call_peaks(fileargs, peakargs)
 	delete_files(fileargs)
 	neighbours(fileargs, annoargs)
 	peak_classifier(fileargs)
-	peak_distributor(fileargs, annoargs)
+	peak_distributor(fileargs, peakargs, annoargs)
 	peak_localizer(fileargs)
 	peaks_per_chromosome(fileargs)
-	HOMER_make_motifs(fileargs, motifargs)
+	make_motifs(fileargs, motifargs)
 	
 
 else:

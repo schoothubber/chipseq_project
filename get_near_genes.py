@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.7
 
 ######################################
 ###Author: W. van der Schoot
@@ -28,13 +29,13 @@ def neighbours(fileargs, annoargs):
 	bam_test_file = fileargs['bam_test_file']
 	seqpeak_folder = fileargs['seqpeak_folder']
 	neighbor_folder = fileargs['neighbor_folder']
-	
+
 	#tool parameters
-	species = annoargs["nspec"]
-	annotation_file = annoargs["nanno"]
-	g_distance = annoargs["ngdist"]
-	upstream_genes = annoargs["nusgenes"]
-	downstream_genes = annoargs["ndsgenes"]
+	species = annoargs["neighbor_species"]
+	annotation_file = annoargs["neighbor_annotationfile"]
+	g_distance = annoargs["neighbor_gdistance"]
+	upstream_genes = annoargs["neighbor_upstreamgenes"]
+	downstream_genes = annoargs["neighbor_downstreamgenes"]
 	
 	#process variables
 	base_name_test = get_base_name(bam_test_file)
