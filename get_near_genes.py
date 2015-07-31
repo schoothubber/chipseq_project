@@ -25,6 +25,9 @@ def neighbours(fileargs, annoargs):
 	g_distance, "-up", upstream_genes, "-down", downstream_genes
 	
 	"""
+	#Tool Path
+	reflocus_getneighborgenes = "%s/bin/reflocus_getneighborgenes"%fileargs['cisgenome_path']
+	
 	#folder parameters
 	bam_test_file = fileargs['bam_test_file']
 	seqpeak_folder = fileargs['seqpeak_folder']
@@ -46,11 +49,12 @@ def neighbours(fileargs, annoargs):
 	print "Running reflocus_getneighborgenes on %s"%peak_file
 	
 	cmd = [
-			"reflocus_getneighborgenes", "-d" , annotation_file, 
+			reflocus_getneighborgenes, "-d" , annotation_file, 
 			"-s", species, "-i", peak_in, "-o", peak_out, "-g", 
 			g_distance, "-up", upstream_genes, "-down", downstream_genes
 			]
-			
+	
+	#print cmd		
 	#pipe = check_output(cmd)
 	pipe = Popen(cmd, stdout=PIPE, stderr=PIPE)
 	stdout, stderr = pipe.communicate()

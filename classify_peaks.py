@@ -107,12 +107,12 @@ def peak_distributor(fileargs, peakargs, annoargs):
 	N = len(peak_data_perc)
 	#print "N: %s"%N
 	
-	############################
-	#RESERVED FOR RANDOM VALUES#
-	############################
+	######################################
+	####MAKE ROOM FOR RANDOM VALUES!!!####
+	######################################
 	#The random peaks are taken from the input file
-	#At least 10x as many random peaks than there are actual peaks
-	#But never more than 100k peaks
+	#At least 100x as many random peaks than there are actual peaks
+	#But never more than 1M peaks
 	
 	base_name_ctrl = get_base_name(bam_ctrl_file)
 	make_random_peak_list(peakargs, random_folder, aln_folder, base_name_ctrl, N)
@@ -125,7 +125,8 @@ def peak_distributor(fileargs, peakargs, annoargs):
 			'bam_test_file' : random_path,
 			'annotation_file' : annotation_file,
 			'seqpeak_folder' : random_folder,
-			'neighbor_folder' : random_folder
+			'neighbor_folder' : random_folder,
+			'cisgenome_path' : fileargs['cisgenome_path']
 			}
 	neighbours(rand_fileargs, annoargs)
 	
@@ -138,6 +139,7 @@ def peak_distributor(fileargs, peakargs, annoargs):
 	
 	random_TSS_data_min = get_TSS_data(random_data)
 	random_peak_data_perc = classify(random_TSS_data_min)
+	
 	
 	########################
 	#matplotlib stuff
@@ -211,6 +213,8 @@ def get_TSS_data(data):
 			id_tss = [line[0],int(line[8])]
 			TSS_data_max.append(id_tss)
 		except ValueError:
+			#sometime line[8] is a string
+			#we dont need those...
 			pass
 			
 	TSS_data_min = []
@@ -218,6 +222,8 @@ def get_TSS_data(data):
 	TSS_list = []
 	
 	for seq_id, TSS in TSS_data_max:
+	#there are blocks for each peak with similar id numbers
+	#from these blocks select the smallest absolute TSS
 		temp_tss = TSS
 		if not temp_tss_list:
 			identifier = seq_id
@@ -332,6 +338,9 @@ def peak_localizer(fileargs):
 	Ascertain whether the physical locations in line[2] and line[3]...
 	Are in- or outside the physical locations in line[13] and line[14]
 	
+	But make sure to only measure eahc peak once
+	Each peak has only 1 seq_id (column 0)
+	
 	The results are saved in a pie chart using matplotlib
 	"""
 	#folder parameters
@@ -343,33 +352,55 @@ def peak_localizer(fileargs):
 							bam_test_file
 							)
 	
-	intergenic = 0
-	intragenic = 0
+	intragenic = False
+	identifier = None
+	
+	inter_count = 0
+	intra_count = 0
 	
 	for line in data:
 		
 		try:
+			seq_id = line[0]	#identifier
 			ps = int(line[2])	#peak start
 			pe = int(line[3])	#peak_end
 			gs = int(line[13])	#gene transcription start site
 			ge = int(line[14])	#gene transcription end site
 			
+			if identifier == seq_id:
+				if ps > gs and pe < ge:
+					intragenic = True
+				else:
+					pass
+					
+			elif identifier != seq_id:
+				if ps > gs and pe < ge:
+					intragenic = True
+				if intragenic:
+					intra_count += 1
+				else:
+					inter_count += 1
+				identifier = seq_id
+				intragenic = False
+				
+			elif identifier == None:
+				identifier = seq_id
+			
 		except ValueError:
 			pass
 		
-		
-		if ps > gs and pe < ge:
-			intragenic += 1
+		#if ps > gs and pe < ge:
+		#	intragenic += 1
 			
-		if ps < gs and pe < gs:
-			intergenic += 1
+		#if ps < gs and pe < gs:
+		#	intergenic += 1
 			
-		if ps > ge and pe > ge:
-			intergenic +=1
+		#if ps > ge and pe > ge:
+		#	intergenic +=1
 	
-	total = intergenic + intragenic
-	inter_perc = float(intergenic) / total * 100
-	intra_perc = float(intragenic) / total * 100
+	total = inter_count + intra_count
+	inter_perc = float(inter_count) / total * 100
+	intra_perc = float(intra_count) / total * 100
 	
 	
 	#Prepare to display the calculated values with a pie chart
@@ -472,7 +503,7 @@ def peaks_per_chromosome(fileargs):
 		#print counts_dict
 
 	
-	#write the data to a text file
+	#write the data to a text file, because of reasons
 	fn = "%s/%s%s"%(neighbor_folder, base_name_test, '_peakdensity.txt')
 	with open(fn, 'w') as fo:
 
@@ -487,9 +518,8 @@ def peaks_per_chromosome(fileargs):
 	#################################
 	#######Matplotlib stuff##########
 	#################################
-	#write the data into a graph plot
+	#write the data into a graph plot, because of more reasons
 	plot_name = "%s/%s%s"%(neighbor_folder, base_name_test, '_peakdensity.png')
-	#plot_name = "%s/%s%s"%(neighbor_folder, "LPSIL102H4_dedup", '_peakdensity.png')
 	
 	x = [] # x coordinates
 	y = [] # y coordinates
@@ -499,22 +529,21 @@ def peaks_per_chromosome(fileargs):
 	i = 0
 	for chrom, counts in counts_dict.iteritems():
 		
-		#create the locations for the labels
 		v.append(i)
-		
+		#create the locations for the labels
 		for window, tally in counts.iteritems():
 			#create the x and y coordinates
 			x.append(i)
 			y.append(tally)
 			i += 1
 		
-		#create the labels
+		#create a label
 		xlabels.append('chr' + str(chrom))
 
 	v.append(max(x))
 	
 	#make coordinates for the xlabels
-	#which should be in between the 2 consecutive X values
+	#which should be in between 2 consecutive X values
 	xlabel_locs = []
 	for j in range(0, len(v)-1):
 		#print j
@@ -544,7 +573,7 @@ def peaks_per_chromosome(fileargs):
 	plt.vlines(v, 0, max(y)+5, colors = 'y')
 	plt.scatter(x,y, s=5)
 	plt.savefig(plot_name)
-	plt.close()		
+	plt.close()
 	
 	
 	

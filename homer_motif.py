@@ -22,13 +22,21 @@ def make_motifs(fileargs, motifargs):
 							-mis
 							-len
 	"""
+	#Tool Path
+	#findMotifsGenome = "%s/findMotifsGenome.pl"%fileargs['homer_path'] 
+	#pars_dir = "%s/data/custom/genomes/hg38/preparsed"%fileargs['homer_path'] 
+	
 	#folder parameters
 	bam_test_file = fileargs['bam_test_file']
 	seqpeak_folder = fileargs['seqpeak_folder']
 	motif_folder = fileargs['motif_folder']
-
+	
+	#set Homer environment variable
+	#os.environ['HOMER_LIBRARY_PATH'] = fileargs['homer_path']
+	
 	#tool parameters
 	genome = motifargs["motif_genome"]
+	#genome = fileargs["genome_path"] #Path to the reference genome
 	motif_size = motifargs["motif_size"]
 	motif_len = motifargs["motif_length"]
 	motif_num = motifargs["motif_number"]
@@ -48,11 +56,15 @@ def make_motifs(fileargs, motifargs):
 	#cmd = 'findMotifsGenome.pl %s hg38 %s -size given'%(peak_file, motif_output)
 	
 	cmd = 'findMotifsGenome.pl %s %s %s -size %s -S %s -mis %s -len %s'%(
-							peak_file, genome, motif_output, motif_size,
-							motif_num, mismatches, motif_len
+							peak_file, genome,
+							motif_output, motif_size, 
+							motif_num, mismatches,
+							motif_len
 							)
 	
-	print "Start finding motifs for %s"%base_name_test
+	#print "Homer cmd: %s"%cmd
+	#print "Start finding motifs for %s"%base_name_test
+	
 	check_output(cmd, shell=True)
 	#pipe = Popen(cmd, stdout=PIPE, stderr=PIPE)
 	#stdout, stderr = pipe.communicate()

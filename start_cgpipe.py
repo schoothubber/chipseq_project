@@ -7,7 +7,7 @@
 import argparse, os, sys
 
 from logging import parameter_logger
-from prepare_data import converter
+from prepare_data import converter, compress_file
 from do_seqpeak import call_peaks, delete_files
 from get_near_genes import neighbours
 from classify_peaks import (peak_classifier, peak_distributor,
@@ -22,6 +22,9 @@ parser.add_argument(
 
 #tool path names
 parser.add_argument("sam", help="Full pathname to sambamba")
+parser.add_argument("cis", help="Full pathname to cisgenome")
+parser.add_argument("hom", help="Full pathname to homer")
+parser.add_argument("g", help="Full pathname to the Genome")
 #files and output folder
 parser.add_argument("bt", help="Full pathname BAM test file")
 parser.add_argument("bc", help="Full pathname BAM control file")
@@ -41,6 +44,7 @@ parser.add_argument("ngdist", help="distance upper limit")
 parser.add_argument("nusgenes", help="no. of upstream genes")
 parser.add_argument("ndsgenes", help="no. of downstream genes")
 #motif parameters
+parser.add_argument("domotif", help="This is a string containing a yes or a no, answering the question if we want to do a de novo motif analysis")
 parser.add_argument("mgenom", help="current support: hg38. mm10")
 parser.add_argument("msize", help="The size of the region used for motif finding is important.  If analyzing ChIP-Seq peaks from a transcription factor, Chuck would recommend 50 bp for establishing the primary motif bound by a given transcription factor and 200 bp for finding both primary and co-enriched motifs for a transcription factor.  When looking at histone marked regions, 500-1000 bp is probably a good idea (i.e. H3K4me or H3/H4 acetylated regions).  In theory, HOMER can work with very large regions (i.e. 10kb), but with the larger the regions comes more sequence and longer execution time.  These regions will be based off the center of the peaks.  If you prefer an offset, you can specify -size -300,100 to search a region of size 400 that is centered 100 bp upstream of the peak center (useful if doing motif finding on putative TSS regions).  If you have variable length regions, use the option -size given and HOMER will use the exact regions that were used as input.")
 parser.add_argument("mlen", help="motif length, default=8,10,12) [NOTE: values greater 12 may cause the programto run out of memory - in these cases decrease the number of sequences analyzed (-N),or try analyzing shorter sequence regions (i.e. -size 100)]")
@@ -86,8 +90,9 @@ if args.cgpipeline:
 	if not os.path.exists(log_folder):
 		os.mkdir(log_folder)
 	
-	#some hash:
+	do_motif = args.domotif
 	
+	#some hash:
 	#folder parameters
 	fileargs = {
 		'main_output' : main_output,
@@ -100,7 +105,10 @@ if args.cgpipeline:
 		'random_folder' : random_folder,
 		'nanno' : args.nanno,
 		'log_folder' : log_folder,
-		'sambamba_path' : args.sam
+		'sambamba_path' : args.sam,
+		'cisgenome_path' : args.cis,
+		'homer_path' : args.hom,
+		'genome_path' : args.g
 		}
 	
 	#seqpeak parameters
@@ -141,8 +149,13 @@ if args.cgpipeline:
 	peak_distributor(fileargs, peakargs, annoargs)
 	peak_localizer(fileargs)
 	peaks_per_chromosome(fileargs)
-	make_motifs(fileargs, motifargs)
 	
+	if do_motif == 'yes':
+		make_motifs(fileargs, motifargs)
+	else:
+		pass
+	
+	compress_file(fileargs)
 
 else:
 	print "Something went wrong, better check the input parameters!"

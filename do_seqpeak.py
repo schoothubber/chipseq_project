@@ -26,6 +26,8 @@ def call_peaks(fileargs, peakargs):
 	Some values are actually a yes or a no but the input is a 1 or a 0,
 	respectively
 	"""
+	#Tool Path
+	seqpeak = "%s/bin/seqpeak"%fileargs['cisgenome_path']
 	#folder parameters
 	bam_test_file = fileargs['bam_test_file']
 	aln_folder = fileargs['aln_folder']
@@ -52,7 +54,7 @@ def call_peaks(fileargs, peakargs):
 		seqpeaklist = "%s/%s_filelist.txt"%(aln_folder, base_name_test)
 		
 		cmd = [
-			"seqpeak", "-i", seqpeaklist, "-d", seqpeak_folder, 
+			seqpeak, "-i", seqpeaklist, "-d", seqpeak_folder, 
 			"-o", peak_filename, "-e", read_ext_len, "-b", bin_size, 
 			"-w", half_win_size, "-ts", stand_win_stat, 
 			"-maxgap", max_peak_gap, "-minlen", min_reg_len, 
